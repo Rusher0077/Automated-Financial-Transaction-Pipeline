@@ -1,0 +1,51 @@
+CREATE OR REPLACE TABLE trigger_transfer_cashout_chain AS
+
+WITH top5_threshold AS (
+    SELECT 
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY amount) AS threshold
+    FROM 
+        fact_daily_transactions
+),
+transfer AS (
+    SELECT
+        date,
+        account_orig AS transfer_sender,
+        account_dest AS transfer_receiver,
+        amount AS transfer_amount
+    FROM 
+        fact_daily_transactions
+    WHERE 
+        transaction_type = 'TRANSFER'
+),
+cashout AS (
+    SELECT 
+        date,
+        account_orig AS transfer_receiver,
+        amount AS cashout_amount
+    FROM 
+        fact_daily_transactions
+    WHERE 
+        transaction_type = 'CASH_OUT'
+)
+SELECT 
+    t.date AS flag_date,
+    t.transfer_sender,
+    t.transfer_receiver,
+    t.transfer_amount,
+    c.cashout_amount,
+    th.threshold AS top5_threshold,
+    TRUE AS flag_transfer_cashout_chain
+
+FROM 
+    transfer AS t
+    INNER JOIN cashout AS c  
+        ON t.transfer_receiver = c.transfer_receiver 
+        AND t.date = c.date
+    CROSS JOIN top5_threshold AS th
+
+WHERE 
+    c.cashout_amount >= th.threshold
+    
+ORDER BY 
+    flag_date, 
+    c.cashout_amount DESC
