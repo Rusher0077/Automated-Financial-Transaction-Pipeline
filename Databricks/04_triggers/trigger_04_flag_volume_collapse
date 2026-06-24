@@ -1,0 +1,28 @@
+CREATE OR REPLACE TABLE trigger_volume_collapse AS
+
+WITH daily_volume AS (
+    SELECT 
+        report_date,
+        total_volume,
+        dayofweek(report_date) AS day_of_week,
+        date_sub(report_date, 7) AS same_day_last_week
+    FROM kpi_daily
+)
+SELECT
+    d.report_date,
+    date_format(d.report_date, 'EEEE') AS day_name,
+    d.total_volume AS current_volume,
+    prev.total_volume AS prev_week_volume,
+    ROUND(
+        (d.total_volume - prev.total_volume) * 100.0 / (prev.total_volume), 2
+    ) AS volume_change_pct,
+    TRUE AS flag_volume_collapse
+
+FROM daily_volume d
+
+INNER JOIN daily_volume prev 
+    ON d.same_day_last_week = prev.report_date
+    
+WHERE (d.total_volume - prev.total_volume) * 100.0 / prev.total_volume < -40
+
+ORDER BY d.report_date
