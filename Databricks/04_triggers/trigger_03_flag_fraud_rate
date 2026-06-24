@@ -1,0 +1,12 @@
+CREATE OR REPLACE TABLE trigger_fraud_rate_breach AS
+SELECT
+    report_date,
+    transaction_count,
+    fraud_flag_rate,
+    TRUE AS flag_fraud_rate_breach
+FROM
+    kpi_daily
+WHERE
+    fraud_flag_rate > 1
+ORDER BY
+    report_date
