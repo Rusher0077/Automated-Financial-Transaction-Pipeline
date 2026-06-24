@@ -1,0 +1,57 @@
+CREATE OR REPLACE TABLE alert_flags AS
+
+WITH all_dates AS (
+    SELECT
+        DISTINCT report_date AS flag_date
+    FROM kpi_daily
+),
+spike AS (
+    SELECT
+        DISTINCT snapshot_date AS flag_date,
+        TRUE AS flag_transaction_spike
+    FROM trigger_transaction_spike
+),
+chain AS (
+    SELECT
+        DISTINCT flag_date,
+        TRUE AS flag_chain_attack
+    FROM trigger_transfer_cashout_chain
+),
+fraud AS (
+    SELECT
+        DISTINCT report_date AS flag_date,
+        TRUE AS flag_fraudulent_activity
+    FROM trigger_fraud_rate_breach
+),
+collapse AS (
+    SELECT
+        DISTINCT report_date AS flag_date,
+        TRUE AS flag_volume_collapse
+    FROM trigger_volume_collapse
+)
+
+SELECT
+    d.flag_date,
+    COALESCE(s.flag_transaction_spike, FALSE) AS flag_transaction_spike,
+    COALESCE(c.flag_chain_attack, FALSE) AS flag_chain_attack,
+    COALESCE(f.flag_fraudulent_activity, FALSE) AS flag_fraudulent_activity,
+    COALESCE(v.flag_volume_collapse, FALSE) AS flag_volume_collapse,
+    
+    CASE
+        WHEN
+            COALESCE(s.flag_transaction_spike, FALSE) OR
+            COALESCE(c.flag_chain_attack, FALSE) OR
+            COALESCE(f.flag_fraudulent_activity, FALSE) OR
+            COALESCE(v.flag_volume_collapse, FALSE)
+        THEN TRUE
+        ELSE FALSE
+    END AS any_flag_active
+
+FROM all_dates d
+
+LEFT JOIN spike s ON d.flag_date = s.flag_date
+LEFT JOIN chain c ON d.flag_date = c.flag_date
+LEFT JOIN fraud f ON d.flag_date = f.flag_date
+LEFT JOIN collapse v ON d.flag_date = v.flag_date
+
+ORDER BY d.flag_date
