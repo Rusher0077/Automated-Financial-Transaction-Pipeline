@@ -1,0 +1,202 @@
+{
+  "name": "workflow_emergency_trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const raw = items[0].json.result.data_array[0];\nconst flagDate = raw[0].split('T')[0];\nconst spike    = raw[1] === 'true';\nconst chain    = raw[2] === 'true';\nconst fraud    = raw[3] === 'true';\nconst collapse = raw[4] === 'true';\n\nconst activeFlags = [];\nif (spike)    activeFlags.push('  — Transaction Spike detected');\nif (chain)    activeFlags.push('  — Transfer → Cash-Out chain detected');\nif (fraud)    activeFlags.push('  — Fraud rate breach');\nif (collapse) activeFlags.push('  — Volume collapse (>40% drop)');\n\nconst flagLines = activeFlags.join('\\n');\n\nconst message = `🚨 *EMERGENCY ALERT — ${flagDate}*\n──────────────────────────────\n*Flags triggered:*\n${flagLines}\n\n*Immediate investigation required.*`;\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        32
+      ],
+      "id": "c78ddc57-853e-4575-9448-029c3afea4dd",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "abfa61bc-1126-4599-8d1c-acb96715e2b7",
+              "leftValue": "={{ $json.manifest.total_row_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        48
+      ],
+      "id": "543dcce3-b257-4790-9656-30513ed7f3f7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 11,
+              "triggerAtMinute": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        32
+      ],
+      "id": "24abc0f7-b222-4088-8bf2-257bb16dcfd9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dbc-ef467029-2181.cloud.databricks.com/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"warehouse_id\": \"7df93d2122077ac8\",\n  \"statement\": \"SELECT flag_date, flag_transaction_spike, flag_chain_attack, flag_fraudulent_activity, flag_volume_collapse, any_flag_active FROM workspace.default.alert_flags WHERE DATE(flag_date) = CURRENT_DATE - INTERVAL 1 DAY AND any_flag_active = TRUE\",\n  \"wait_timeout\": \"30s\",\n  \"catalog\": \"workspace\",\n  \"schema\": \"default\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -32,
+        32
+      ],
+      "id": "0a9610cd-32fe-4457-8964-18d58b1046da",
+      "name": "Fetch Alert Flags",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "f6NxUKtHZDBdFzLq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "5563497466"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        32
+      ],
+      "id": "7c9dd656-0b20-4255-bfe2-eca13482f294",
+      "name": "Send Emergency Alert"
+    },
+    {
+      "parameters": {
+        "content": "##  Emergency Alert Engine\n- Runs every morning at 11:10 AM after the daily load. \n- Checks the alert flags table for active fraud, spike, chain attack or volume collapse triggers.\n- Sends an emergency alert to Telegram only when a flag is active — silent otherwise.",
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "d9b4793d-feef-4874-8155-cabcd6a9ddbc",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Emergency Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Alert Flags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Alert Flags": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "43d13d8e-5a74-4065-874a-74bdcffde447",
+  "meta": {
+    "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
+  },
+  "id": "eU3drQqTuArJHDm3",
+  "tags": []
+}
