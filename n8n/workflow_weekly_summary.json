@@ -1,0 +1,161 @@
+{
+  "name": "workflow_weekly_summary",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const raw = items[0].json.result.data_array[0];\nconst weekStart = raw[0].split('T')[0];\nconst totalVolume = (parseFloat(raw[1]) / 1e6).toFixed(2);\nconst txCount = parseInt(raw[2]).toLocaleString();\nconst wowVolume = parseFloat(raw[3]);\nconst wowCount = parseFloat(raw[4]);\nconst cashInPct = parseFloat(raw[5]).toFixed(1);\nconst cashOutPct = parseFloat(raw[6]).toFixed(1);\nconst transferPct = parseFloat(raw[7]).toFixed(1);\nconst ratio = parseFloat(raw[8]).toFixed(2);\nconst volArrow = wowVolume >= 0 ? '▲' : '▼';\nconst cntArrow = wowCount >= 0 ? '▲' : '▼';\n\nconst top5 = JSON.parse(raw[9]);\nconst top5Lines = top5.map((a, i) => `  ${i + 1}. ${a.account_id} — ${a.tx_count} txns`).join('\\n');\n\nconst message = `📅 *Weekly Transaction Report — w/c ${weekStart}*\n──────────────────────────────\n*Volume:*        $${totalVolume}M   ${volArrow} ${wowVolume}% WoW\n*Transactions:*  ${txCount}   ${cntArrow} ${wowCount}% WoW\n\n*Type Mix:*\n  CASHIN:   ${cashInPct}%\n  CASHOUT:  ${cashOutPct}%\n  TRANSFER:  ${transferPct}%\n\n*CASH_OUT / CASH_IN Ratio:*  ${ratio}\n\n*Top 5 Accounts by Transaction Count:*\n${top5Lines}`;\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        0
+      ],
+      "id": "f3fd1c1f-51f3-4b92-98f9-c5612f3e3fc3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 23,
+              "triggerAtMinute": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "3388cea5-a0ee-48d0-9b49-89fe44dbf23c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dbc-ef467029-2181.cloud.databricks.com/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"warehouse_id\": \"7df93d2122077ac8\",\n  \"statement\": \"SELECT week_start, total_volume, transaction_count, wow_volume_change_pct, wow_count_change_pct, type_mix_cash_in_pct, type_mix_cash_out_pct, type_mix_transfer_pct, cashout_to_cashin_ratio, top_5_accounts_by_count FROM workspace.default.kpi_weekly WHERE DATE(week_start) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL 7 DAYS)\",\n  \"wait_timeout\": \"30s\",\n  \"catalog\": \"workspace\",\n  \"schema\": \"default\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "c51694a5-ef84-4d55-8b44-8af42297c7b3",
+      "name": "Fetch Weekly Summary",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "f6NxUKtHZDBdFzLq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "5563497466"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        352,
+        0
+      ],
+      "id": "cf614cdc-57cd-48aa-8b14-d727ed41a338",
+      "name": "Send Weekly Report"
+    },
+    {
+      "parameters": {
+        "content": "## Weekly Performance Summary\n- Runs every Monday at 11:10 AM. \n\n- Queries last week's aggregated performance metrics including transaction mix, cashout ratio and top accounts, and delivers a week-over-week summary to Telegram.",
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "0653a3f9-0ddc-441c-9625-ed123b9c32cb",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8d34376f-2d0a-434f-ae4d-e36357999590",
+  "meta": {
+    "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
+  },
+  "id": "Wjg5ps1RCJ2e63ZT",
+  "tags": []
+}
