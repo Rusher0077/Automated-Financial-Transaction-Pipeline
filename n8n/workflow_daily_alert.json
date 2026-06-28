@@ -1,0 +1,156 @@
+{
+  "name": "workflow_daily_alert",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const raw = items[0].json.result.data_array[0];\n\nconst reportDate = raw[0].split('T')[0];\nconst totalVolume = (parseFloat(raw[1]) / 1e6).toFixed(2);\nconst txCount = parseInt(raw[2]).toLocaleString();\nconst fraudRate = parseFloat(raw[3]).toFixed(4);\nconst avgTxSize = parseFloat(raw[4]).toFixed(2);\nconst dodVolume = parseFloat(raw[5]);\nconst dodCount = parseFloat(raw[6]);\nconst volArrow = dodVolume >= 0 ? '▲' : '▼';\nconst cntArrow = dodCount >= 0 ? '▲' : '▼';\n\nconst message = `📊 *Daily Transaction Report — ${reportDate}*\n──────────────────────────────\n*Volume:*        $${totalVolume}M   ${volArrow} ${dodVolume}% DoD\n*Transactions:*  ${txCount}   ${cntArrow} ${dodCount}% DoD\n*Fraud Rate:*    ${fraudRate}%\n*Avg Tx Size:*   $${Number(avgTxSize).toLocaleString()}`;\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "d677171b-fa55-4466-aa16-d6d0b6a2fd02",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 11
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "533a12cc-2222-4945-a2ca-daf823b6b683",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dbc-ef467029-2181.cloud.databricks.com/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"warehouse_id\": \"7df93d2122077ac8\",\n  \"statement\": \"SELECT report_date, total_volume, transaction_count, fraud_flag_rate, avg_transaction_size, dod_volume_change_pct, dod_count_change_pct FROM workspace.default.kpi_daily WHERE DATE(report_date) = CURRENT_DATE - INTERVAL 1 DAY\",\n  \"wait_timeout\": \"30s\",\n  \"catalog\": \"workspace\",\n  \"schema\": \"default\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "0ecf314f-d97a-4c8c-a311-0869ebd53b43",
+      "name": "Fetch Daily KPIs",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "f6NxUKtHZDBdFzLq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "5563497466"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "60d527dc-50b0-4002-8991-1c22fa90c29f",
+      "name": "Send Daily Report"
+    },
+    {
+      "parameters": {
+        "content": "   ##  Daily KPI Monitor\n- Runs every morning at 11:00 AM.\n- Queries the previous day's transaction KPIs from Databricks and delivers a formatted summary with day-over-day changes to Telegram.\n",
+        "width": 310
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "4de603b3-4ed6-45dd-a9a0-3cd016deee61",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Daily KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Daily KPIs": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5be0d454-ff58-463b-a0b6-0ec8c3e848b7",
+  "meta": {
+    "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
+  },
+  "id": "lnt2f3kRLINKmvA0",
+  "tags": []
+}
