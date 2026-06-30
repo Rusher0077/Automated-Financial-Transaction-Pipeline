@@ -62,7 +62,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "url": "https://api.telegram.org/your_telegram_bot_token/sendMessage",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -99,7 +99,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "position": [
         224,
-        -208
+        -224
       ],
       "typeVersion": 1,
       "id": "4de603b3-4ed6-45dd-a9a0-3cd016deee61",
@@ -147,7 +147,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "5be0d454-ff58-463b-a0b6-0ec8c3e848b7",
+  "versionId": "5cf0d149-d480-49f1-9707-1d15c3cbbe67",
   "meta": {
     "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
   },

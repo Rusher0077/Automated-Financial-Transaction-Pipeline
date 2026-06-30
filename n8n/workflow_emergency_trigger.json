@@ -54,7 +54,7 @@
           "interval": [
             {
               "triggerAtHour": 11,
-              "triggerAtMinute": 10
+              "triggerAtMinute": 5
             }
           ]
         }
@@ -97,7 +97,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "url": "https://api.telegram.org/your_telegram_bot_token/sendMessage",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -128,13 +128,13 @@
     },
     {
       "parameters": {
-        "content": "##  Emergency Alert Engine\n- Runs every morning at 11:10 AM after the daily load. \n- Checks the alert flags table for active fraud, spike, chain attack or volume collapse triggers.\n- Sends an emergency alert to Telegram only when a flag is active — silent otherwise.",
+        "content": "##  Emergency Alert Engine\n- Runs every morning at 11:05 AM after the daily load. \n- Checks the alert flags table for active fraud, spike, chain attack or volume collapse triggers.\n- Sends an emergency alert to Telegram only when a flag is active — silent otherwise.",
         "width": 432
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        16,
-        -176
+        32,
+        -192
       ],
       "typeVersion": 1,
       "id": "d9b4793d-feef-4874-8155-cabcd6a9ddbc",
@@ -193,7 +193,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "43d13d8e-5a74-4065-874a-74bdcffde447",
+  "versionId": "c240db74-ae29-4481-9e5c-ef44e9f007ee",
   "meta": {
     "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
   },

@@ -23,7 +23,7 @@
               "triggerAtDay": [
                 1
               ],
-              "triggerAtHour": 23,
+              "triggerAtHour": 11,
               "triggerAtMinute": 10
             }
           ]
@@ -67,7 +67,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8897701225:AAG01T9tY_A98Wn-ecf1aprNkcFUOz2fS4U/sendMessage",
+        "url": "https://api.telegram.org/your_telegram_bot_token/sendMessage",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -152,7 +152,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "8d34376f-2d0a-434f-ae4d-e36357999590",
+  "versionId": "6cc7aed0-651a-46a9-b18f-bb2962fec385",
   "meta": {
     "instanceId": "a6f3f819475d1b519829d825cf24d324146c9e65974dd25e81ddbeabaa8c7552"
   },
